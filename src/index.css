@@ -1,0 +1,375 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap');
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --accent: 99 102 241;
+    /* indigo-500 */
+  }
+
+  body {
+    @apply bg-slate-950 text-slate-100 antialiased overflow-hidden;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  code,
+  pre,
+  .font-mono {
+    font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  }
+}
+
+/* ─── Dynamic Lights Animations for Hero Logo ─── */
+@keyframes spinSlow {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.1); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.55; transform: scale(1); filter: blur(35px); }
+  50% { opacity: 0.95; transform: scale(1.12); filter: blur(45px); }
+}
+
+@keyframes orbitLight1 {
+  0% { transform: rotate(0deg) translate(140px) rotate(0deg); }
+  100% { transform: rotate(360deg) translate(140px) rotate(-360deg); }
+}
+
+@keyframes orbitLight2 {
+  0% { transform: rotate(360deg) translate(160px) rotate(-360deg); }
+  100% { transform: rotate(0deg) translate(160px) rotate(0deg); }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 12s linear infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 4s ease-in-out infinite;
+}
+
+.animate-orbit-1 {
+  animation: orbitLight1 7s linear infinite;
+}
+
+.animate-orbit-2 {
+  animation: orbitLight2 9s linear infinite;
+}
+
+/* ─── Custom Scrollbars (Eliminates white native scrollbars across OS) ─── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.5) rgba(15, 23, 42, 0.95);
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.5);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(129, 140, 248, 0.9);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* Custom Vertical Panel Scrollbar */
+.custom-vertical-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.custom-vertical-scrollbar::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+.custom-vertical-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.5);
+  border-radius: 9999px;
+}
+
+.custom-vertical-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(129, 140, 248, 0.9);
+}
+
+/* Custom Horizontal Tab Scrollbar */
+.custom-tab-scrollbar::-webkit-scrollbar {
+  height: 4px;
+}
+
+.custom-tab-scrollbar::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.custom-tab-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.6);
+  border-radius: 9999px;
+}
+
+.custom-tab-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(129, 140, 248, 0.9);
+}
+
+/* ─── Micro-animations ──────────────────────────────────────────────── */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-ring {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px rgba(99, 102, 241, 0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes edge-flow {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.25s ease-out both;
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 1.5s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* ─── Shimmer gradient text ─────────────────────────────────────────── */
+.gradient-text-shimmer {
+  background: linear-gradient(90deg,
+      #818cf8 0%,
+      #c084fc 25%,
+      #38bdf8 50%,
+      #818cf8 75%,
+      #c084fc 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
+}
+
+/* ─── React Flow overrides ──────────────────────────────────────────── */
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+.react-flow__node {
+  cursor: grab;
+}
+
+.react-flow__node:active {
+  cursor: grabbing;
+}
+
+/* ─── Glassmorphism helper ──────────────────────────────────────────── */
+.glass {
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(51, 65, 85, 0.5);
+}
+
+/* ─── State node glow on active ─────────────────────────────────────── */
+.state-node-active {
+  box-shadow:
+    0 0 0 3px rgba(99, 102, 241, 0.6),
+    0 0 20px rgba(99, 102, 241, 0.4);
+}
+
+.state-node-accept {
+  box-shadow:
+    0 0 0 3px rgba(16, 185, 129, 0.6),
+    0 0 16px rgba(16, 185, 129, 0.3);
+}
+
+.state-node-rejected {
+  box-shadow:
+    0 0 0 3px rgba(239, 68, 68, 0.6),
+    0 0 16px rgba(239, 68, 68, 0.3);
+}
+
+/* ─── Animate-in utility (for dropdowns, modals) ────────────────────── */
+.animate-in {
+  animation: fade-in 0.2s ease-out both;
+}
+
+.fade-in {
+  animation-name: fade-in;
+}
+
+.zoom-in-95 {
+  animation: zoom-in-95 0.15s ease-out both;
+}
+
+@keyframes zoom-in-95 {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ─── Selection ─────────────────────────────────────────────────────── */
+::selection {
+  background: rgba(99, 102, 241, 0.3);
+  color: white;
+}
+
+/* ─── Theme Overrides: OLED Black & Cyberpunk ───────────────────────── */
+[data-theme="oled"] body,
+[data-theme="oled"] .bg-slate-950,
+[data-theme="oled"] .bg-slate-900\/95,
+[data-theme="oled"] .bg-slate-900\/90,
+[data-theme="oled"] .bg-slate-900 {
+  background-color: #000000 !important;
+}
+
+[data-theme="oled"] .bg-slate-950\/80,
+[data-theme="oled"] .bg-slate-950\/60,
+[data-theme="oled"] .bg-slate-900\/70,
+[data-theme="oled"] .bg-slate-800\/80 {
+  background-color: #09090b !important;
+}
+
+[data-theme="oled"] .border-slate-800,
+[data-theme="oled"] .border-slate-700\/80,
+[data-theme="oled"] .border-slate-700\/60 {
+  border-color: #1f1f23 !important;
+}
+
+[data-theme="oled"] .react-flow__background {
+  background-color: #000000 !important;
+}
+
+/* Cyberpunk Neon Synthwave Theme */
+[data-theme="cyberpunk"] body,
+[data-theme="cyberpunk"] .bg-slate-950 {
+  background-color: #090014 !important;
+}
+
+[data-theme="cyberpunk"] .bg-slate-900,
+[data-theme="cyberpunk"] .bg-slate-900\/95,
+[data-theme="cyberpunk"] .bg-slate-950\/80 {
+  background-color: #13002b !important;
+}
+
+[data-theme="cyberpunk"] .bg-slate-950\/60,
+[data-theme="cyberpunk"] .bg-slate-900\/70,
+[data-theme="cyberpunk"] .bg-slate-800\/80 {
+  background-color: #1b003a !important;
+}
+
+[data-theme="cyberpunk"] .border-slate-800,
+[data-theme="cyberpunk"] .border-slate-700\/80,
+[data-theme="cyberpunk"] .border-slate-700\/60 {
+  border-color: rgba(236, 72, 153, 0.3) !important;
+}
+
+[data-theme="cyberpunk"] .text-indigo-400,
+[data-theme="cyberpunk"] .text-indigo-300 {
+  color: #f472b6 !important;
+}
+
+[data-theme="cyberpunk"] .bg-indigo-600 {
+  background-color: #ec4899 !important;
+}
+
+[data-theme="cyberpunk"] .hover\:bg-indigo-500:hover {
+  background-color: #db2777 !important;
+}
+
+[data-theme="cyberpunk"] .react-flow__background {
+  background-color: #090014 !important;
+}
+
+[data-theme="cyberpunk"] .state-node-active {
+  box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.8), 0 0 25px rgba(236, 72, 153, 0.6) !important;
+}
+
+[data-theme="oled"] .state-node-active {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.8), 0 0 25px rgba(59, 130, 246, 0.5) !important;
+}
+
+/* ─── 4 Cardinal Connection Handle Dots ────────────────────────────── */
+.react-flow__handle {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.react-flow__handle:hover,
+.react-flow__handle.connecting,
+.react-flow__handle.valid {
+  width: 9px !important;
+  height: 9px !important;
+  background: #38bdf8 !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 1), 0 0 0 2px rgba(59, 130, 246, 0.4) !important;
+}
