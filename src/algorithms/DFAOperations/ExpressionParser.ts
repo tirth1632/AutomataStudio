@@ -57,23 +57,26 @@ export class ExpressionParser {
     const p = promptStr.trim();
 
     // Check parenthesized whole expression: e.g. "(Contains 101 OR Starts with 10) AND NOT Ends with 111"
-    // Split by top-level AND / OR
-    const topAndSplit = this.splitTopLevelOperator(p, ' AND ');
-    if (topAndSplit) {
-      return {
-        type: 'AND',
-        left: this.parsePromptToAST(topAndSplit.left, engine),
-        right: this.parsePromptToAST(topAndSplit.right, engine),
-      };
-    }
+    // Split by top-level AND / OR (unless it's alternating blocks like "alternating 0s and 1s")
+    const lowerP = p.toLowerCase();
+    if (!lowerP.includes('alternat') && !lowerP.includes('between')) {
+      const topAndSplit = this.splitTopLevelOperator(p, ' AND ');
+      if (topAndSplit) {
+        return {
+          type: 'AND',
+          left: this.parsePromptToAST(topAndSplit.left, engine),
+          right: this.parsePromptToAST(topAndSplit.right, engine),
+        };
+      }
 
-    const topOrSplit = this.splitTopLevelOperator(p, ' OR ');
-    if (topOrSplit) {
-      return {
-        type: 'OR',
-        left: this.parsePromptToAST(topOrSplit.left, engine),
-        right: this.parsePromptToAST(topOrSplit.right, engine),
-      };
+      const topOrSplit = this.splitTopLevelOperator(p, ' OR ');
+      if (topOrSplit) {
+        return {
+          type: 'OR',
+          left: this.parsePromptToAST(topOrSplit.left, engine),
+          right: this.parsePromptToAST(topOrSplit.right, engine),
+        };
+      }
     }
 
     if (p.startsWith('NOT ') || p.startsWith('not ') || p.startsWith('all except ') || p.startsWith('ALL EXCEPT ')) {

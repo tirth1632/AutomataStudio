@@ -76,20 +76,33 @@ export class IntentParser {
 
     // 4. CONSECUTIVE SYMBOLS
     if (p.includes('no consecutive') || p.includes('without consecutive')) {
-      const symMatch = p.match(/consecutive\s+([01a-z]+)/i);
       let sym = '1';
       let count = 2;
-      if (symMatch && symMatch[1]) {
-        const target = symMatch[1];
-        if (target.length > 1) {
-          count = target.length;
-          sym = target[0];
-        } else {
-          sym = target;
+
+      const digitBeforeMatch = p.match(/(\d+)\s+consecutive\s+([01a-z])/i);
+      const digitAfterMatch = p.match(/consecutive\s+(\d+)\s+([01a-z])/i);
+      const symMatch = p.match(/consecutive\s+([01a-z]+)/i);
+
+      if (digitBeforeMatch) {
+        count = parseInt(digitBeforeMatch[1], 10);
+        sym = digitBeforeMatch[2];
+      } else if (digitAfterMatch) {
+        count = parseInt(digitAfterMatch[1], 10);
+        sym = digitAfterMatch[2];
+      } else if (symMatch && symMatch[1]) {
+        const rawTarget = symMatch[1];
+        const cleanedTarget = rawTarget.replace(/(?:'s|s)$/i, '');
+        if (cleanedTarget.length > 1) {
+          count = cleanedTarget.length;
+          sym = cleanedTarget[0];
+        } else if (cleanedTarget.length === 1) {
+          sym = cleanedTarget;
+          count = 2;
         }
       } else if (p.includes('0')) {
         sym = '0';
       }
+
       return { type: 'CONSECUTIVE', mode: 'NO', symbol: sym, count, alphabet };
     }
 
@@ -124,12 +137,15 @@ export class IntentParser {
 
     const consecutivePatternMatch = p.match(/(?:contains?\s+)?consecutive\s+([01a-z]+)/i);
     if (consecutivePatternMatch) {
-      const pattern = consecutivePatternMatch[1];
+      const rawTarget = consecutivePatternMatch[1];
+      const pattern = rawTarget.replace(/(?:'s|s)$/i, '');
+      const count = pattern.length === 1 ? 2 : pattern.length;
+      const symbol = pattern[0];
       return {
         type: 'CONSECUTIVE',
         mode: 'AT_LEAST',
-        symbol: pattern[0],
-        count: pattern.length,
+        symbol,
+        count,
         alphabet,
       };
     }
@@ -270,26 +286,42 @@ export class IntentParser {
 
     // 9. DOES NOT CONTAIN / NOT CONTAINING (Before generic CONTAINS)
     const notContainsMatch = p.match(/(?:does?\s+not\s+contain|not\s+contain(?:ing)?|no)\s+([01a-z]+)/i);
-    if (notContainsMatch) return { type: 'NOT_CONTAINS', pattern: notContainsMatch[1], alphabet };
+    if (notContainsMatch) {
+      const pattern = notContainsMatch[1].replace(/(?:'s|s)$/i, '');
+      return { type: 'NOT_CONTAINS', pattern, alphabet };
+    }
 
     // 10. EXACT PATTERN / EXCEPT PATTERN
     const exactMatch = p.match(/(?:exact|only)\s+(?:string|pattern)?\s*([01a-z]+)/i);
-    if (exactMatch) return { type: 'EXACT_STRING', pattern: exactMatch[1], alphabet };
+    if (exactMatch) {
+      const pattern = exactMatch[1].replace(/(?:'s|s)$/i, '');
+      return { type: 'EXACT_STRING', pattern, alphabet };
+    }
 
     const exceptMatch = p.match(/(?:except|all except)\s+(?:string|pattern)?\s*([01a-z]+)/i);
-    if (exceptMatch) return { type: 'EXCEPT_STRING', pattern: exceptMatch[1], alphabet };
+    if (exceptMatch) {
+      const pattern = exceptMatch[1].replace(/(?:'s|s)$/i, '');
+      return { type: 'EXCEPT_STRING', pattern, alphabet };
+    }
 
     // 11. PREFIX / SUFFIX
     const endsMatch = p.match(/(?:ends?|ending)\s+(?:with|in)\s+([01a-z]+)/i);
-    if (endsMatch) return { type: 'ENDS_WITH', pattern: endsMatch[1], alphabet };
+    if (endsMatch) {
+      const pattern = endsMatch[1].replace(/(?:'s|s)$/i, '');
+      return { type: 'ENDS_WITH', pattern, alphabet };
+    }
 
     const startsMatch = p.match(/(?:starts?|starting)\s+with\s+([01a-z]+)/i);
-    if (startsMatch) return { type: 'STARTS_WITH', pattern: startsMatch[1], alphabet };
+    if (startsMatch) {
+      const pattern = startsMatch[1].replace(/(?:'s|s)$/i, '');
+      return { type: 'STARTS_WITH', pattern, alphabet };
+    }
 
     // 12. CONTAINS (Strict pattern match AFTER exact count / not contains)
     const containsMatch = p.match(/contains?\s+([01a-z]+)/i);
     if (containsMatch && containsMatch[1] !== 'exactly' && containsMatch[1] !== 'at') {
-      return { type: 'CONTAINS', pattern: containsMatch[1], alphabet };
+      const pattern = containsMatch[1].replace(/(?:'s|s)$/i, '');
+      return { type: 'CONTAINS', pattern, alphabet };
     }
 
     // Fallback NOT compound for general prompts like "not starts with 0"

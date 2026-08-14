@@ -76,13 +76,32 @@ export class NFAIntentParser {
 
     // Consecutive Prompts
     if (raw.includes('consecutive')) {
-      const isZero = raw.includes('0');
-      const symbol = isZero ? '0' : '1';
+      let symbol = raw.includes('0') ? '0' : '1';
       let len = 2;
-      if (raw.includes('three') || raw.includes('3') || raw.includes('000') || raw.includes('111')) len = 3;
+
+      const digitBeforeMatch = raw.match(/(\d+)\s+consecutive\s+([01a-z])/i);
+      const digitAfterMatch = raw.match(/consecutive\s+(\d+)\s+([01a-z])/i);
+      const symMatch = raw.match(/consecutive\s+([01a-z]+)/i);
+
+      if (digitBeforeMatch) {
+        len = parseInt(digitBeforeMatch[1], 10);
+        symbol = digitBeforeMatch[2];
+      } else if (digitAfterMatch) {
+        len = parseInt(digitAfterMatch[1], 10);
+        symbol = digitAfterMatch[2];
+      } else if (symMatch && symMatch[1]) {
+        const cleaned = symMatch[1].replace(/(?:'s|s)$/i, '');
+        if (cleaned.length > 1) {
+          len = cleaned.length;
+          symbol = cleaned[0];
+        } else if (cleaned.length === 1) {
+          symbol = cleaned;
+          len = 2;
+        }
+      }
 
       let mode: 'CONTAINS' | 'EXACT' | 'NO_CONSECUTIVE' = 'CONTAINS';
-      if (raw.includes('no consecutive')) mode = 'NO_CONSECUTIVE';
+      if (raw.includes('no consecutive') || raw.includes('without consecutive')) mode = 'NO_CONSECUTIVE';
       if (raw.includes('exactly')) mode = 'EXACT';
 
       return {
