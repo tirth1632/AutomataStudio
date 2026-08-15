@@ -16,12 +16,19 @@ export function renameNFAStates(
   prefix: string = 'q'
 ): StateRenameResult {
   const stateMap: Record<string, string> = {};
-  states.forEach((s, idx) => {
+
+  // Ensure startState is ordered first so it is assigned index 0 (e.g. q0 / A0)
+  const orderedStates = [
+    ...(states.includes(startState) ? [startState] : []),
+    ...states.filter((s) => s !== startState),
+  ];
+
+  orderedStates.forEach((s, idx) => {
     stateMap[s] = `${prefix}${idx}`;
   });
 
-  const newStates = states.map((s) => stateMap[s]);
-  const newStartState = stateMap[startState] || startState;
+  const newStates = orderedStates.map((s) => stateMap[s]);
+  const newStartState = stateMap[startState] || `${prefix}0`;
   const newAcceptStates = acceptStates.map((s) => stateMap[s] || s);
 
   const newTransitions: TransitionMap = {};
