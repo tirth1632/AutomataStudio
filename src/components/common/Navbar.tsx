@@ -87,15 +87,15 @@ export const Navbar: React.FC = () => {
         {/* Brand Logo */}
         <div
           onClick={() => setActivePage('home')}
-          className="flex items-center gap-2.5 cursor-pointer group shrink-0"
+          className="flex items-center gap-3 cursor-pointer group shrink-0"
         >
-          <div className="w-9 h-9 rounded-xl overflow-hidden shadow-lg shadow-indigo-600/40 group-hover:scale-105 transition border border-indigo-500/40 shrink-0 bg-slate-950 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl overflow-hidden shadow-xl shadow-indigo-600/50 group-hover:scale-105 transition duration-300 border border-indigo-500/50 shrink-0 bg-slate-950 flex items-center justify-center ring-1 ring-cyan-500/30">
             <img src="/logo.png" alt="Automata Studio Logo" className="w-full h-full object-cover" />
           </div>
           <div>
-            <h1 className="text-base font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent flex items-center gap-1.5">
+            <h1 className="text-base font-extrabold tracking-tight bg-gradient-to-r from-white via-indigo-100 to-cyan-300 bg-clip-text text-transparent flex items-center gap-1.5">
               Automata Studio
-              <span className="text-[10px] font-semibold px-1.5 py-0.2 bg-indigo-950/80 border border-indigo-500/40 text-indigo-300 rounded-full font-mono">
+              <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-950/90 border border-indigo-500/50 text-cyan-300 rounded-full font-mono shadow-sm shadow-indigo-500/30">
                 PRO
               </span>
             </h1>

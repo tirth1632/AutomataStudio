@@ -45,6 +45,8 @@ import { useAutomata } from '../../context/AutomataContext';
 import { AutomataCanvas } from '../canvas/AutomataCanvas';
 import type { AutomatonGraph } from '../../types/automata';
 
+import { generateAcademicPDFReport } from '../../utils/exportUtils';
+
 export const MooreMachineWorkspace: React.FC = () => {
   const { graph, setGraph } = useAutomata();
 
@@ -318,6 +320,16 @@ export const MooreMachineWorkspace: React.FC = () => {
             <span className="text-slate-600">|</span>
             <span className="text-indigo-400 font-bold">q₀: {currentMachine.startState}</span>
           </div>
+
+          <button
+            onClick={() => {
+              const mooreGraph = convertMooreMachineToAutomatonGraph(currentMachine);
+              generateAcademicPDFReport(mooreGraph, currentMachine.description);
+            }}
+            className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-emerald-600/30 cursor-pointer"
+          >
+            <FileText className="w-3.5 h-3.5" /> PDF Report
+          </button>
 
           <button
             onClick={handleExportJSON}

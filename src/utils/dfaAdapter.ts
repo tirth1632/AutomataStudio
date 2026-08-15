@@ -91,7 +91,7 @@ export function dfaToGraph(dfa: DFA, name = 'Generated DFA'): AutomatonGraph {
   return applyDagreLayout(rawGraph);
 }
 
-function getSampleStringsForDFA(dfa: DFA): { accepted: string[]; rejected: string[] } {
+export function getSampleStringsForDFA(dfa: DFA): { accepted: string[]; rejected: string[] } {
   const accepted: string[] = [];
   const rejected: string[] = [];
   const alphabet = dfa.alphabet.length > 0 ? dfa.alphabet : ['0', '1'];
@@ -124,7 +124,7 @@ function getSampleStringsForDFA(dfa: DFA): { accepted: string[]; rejected: strin
       }
     }
 
-    if (curr.length < 5 && visited.size < 128) {
+    if (curr.length < 6 && visited.size < 256) {
       for (const sym of alphabet) {
         queue.push(curr + sym);
       }
@@ -132,8 +132,8 @@ function getSampleStringsForDFA(dfa: DFA): { accepted: string[]; rejected: strin
   }
 
   return {
-    accepted: accepted.length > 0 ? accepted : ['0'],
-    rejected: rejected.length > 0 ? rejected : ['1'],
+    accepted: accepted.length > 0 ? accepted : ['(None)'],
+    rejected: rejected.length > 0 ? rejected : ['(None)'],
   };
 }
 

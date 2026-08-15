@@ -82,23 +82,20 @@ export const HomePage: React.FC = () => {
         {/* Big Brand Logo Image with Dynamic Lights */}
         <div className="flex justify-center pt-2">
           <div className="relative group cursor-pointer" onClick={() => setActivePage('dfa')}>
-            {/* Dynamic Light Layer 1: Rotating Pulsing Color Gradient Halo */}
-            <div className="absolute -inset-8 bg-gradient-to-r from-indigo-500 via-purple-600 to-cyan-400 rounded-full animate-spin-slow animate-pulse-glow opacity-75 group-hover:opacity-100 transition duration-700"></div>
+            {/* Dynamic Light Layer 1: Ambient Background Glow Halo */}
+            <div className="absolute -inset-10 bg-gradient-to-r from-indigo-600/40 via-purple-600/40 to-cyan-500/40 rounded-full blur-3xl opacity-75 group-hover:opacity-100 transition duration-700"></div>
 
-            {/* Dynamic Light Layer 2: Secondary Outer Neon Glow */}
-            <div className="absolute -inset-4 bg-gradient-to-tr from-cyan-500 via-indigo-600 to-purple-500 rounded-full blur-2xl opacity-60 group-hover:opacity-90 transition duration-500"></div>
-
-            {/* Dynamic Light Layer 3: Orbiting Light Beams */}
+            {/* Dynamic Light Layer 2: Orbiting Light Beams */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-16 h-16 bg-cyan-400/80 rounded-full blur-xl animate-orbit-1"></div>
-              <div className="w-20 h-20 bg-purple-500/80 rounded-full blur-xl animate-orbit-2"></div>
+              <div className="w-24 h-24 bg-cyan-400/50 rounded-full blur-2xl animate-orbit-1"></div>
+              <div className="w-28 h-28 bg-purple-500/50 rounded-full blur-2xl animate-orbit-2"></div>
             </div>
 
-            {/* Logo Image */}
+            {/* Seamless Logo Image with Radial Feathered Mask */}
             <img
               src="/logo.png"
               alt="Automata Studio Logo"
-              className="relative w-full max-w-xs md:max-w-sm lg:max-w-md h-auto object-contain mx-auto drop-shadow-[0_20px_60px_rgba(99,102,241,0.5)] transition duration-500 group-hover:scale-[1.04]"
+              className="relative w-full max-w-xs md:max-w-sm lg:max-w-md h-auto object-contain mx-auto rounded-3xl [mask-image:radial-gradient(circle_at_center,black_55%,transparent_90%)] [-webkit-mask-image:radial-gradient(circle_at_center,black_55%,transparent_90%)] drop-shadow-[0_0_60px_rgba(99,102,241,0.6)] transition duration-500 group-hover:scale-[1.04]"
             />
           </div>
         </div>
