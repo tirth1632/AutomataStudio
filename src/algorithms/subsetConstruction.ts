@@ -15,8 +15,13 @@ export interface SubsetConstructionResult {
  * Converts an NFA or ε-NFA to a DFA using Subset Construction algorithm.
  */
 export function convertNfaToDfa(nfaGraph: AutomatonGraph): SubsetConstructionResult {
-  const alphabet = nfaGraph.alphabet.filter((sym) => sym !== 'ε' && sym !== 'e');
-  const startStates = nfaGraph.states.filter((s) => s.isStart).map((s) => s.id);
+  const alphabet = (nfaGraph.alphabet && nfaGraph.alphabet.length > 0 ? nfaGraph.alphabet : ['0', '1']).filter(
+    (sym) => sym !== 'ε' && sym !== 'epsilon' && sym !== ''
+  );
+  let startStates = nfaGraph.states.filter((s) => s.isStart).map((s) => s.id);
+  if (startStates.length === 0 && nfaGraph.states.length > 0) {
+    startStates = [nfaGraph.states[0].id];
+  }
   const initialClosure = Array.from(
     getEpsilonClosureSet(startStates, nfaGraph.transitions)
   ).sort();
@@ -56,7 +61,9 @@ export function convertNfaToDfa(nfaGraph: AutomatonGraph): SubsetConstructionRes
       const reachableDirect = new Set<string>();
       for (const nfaId of currentNfaSet) {
         const outgoing = nfaGraph.transitions.filter(
-          (t) => t.source === nfaId && t.symbols.includes(symbol)
+          (t) =>
+            t.source === nfaId &&
+            (t.symbols || []).some((s) => s.split(',').map((x) => x.trim()).includes(symbol))
         );
         for (const edge of outgoing) {
           reachableDirect.add(edge.target);

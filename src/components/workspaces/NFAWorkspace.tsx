@@ -183,6 +183,7 @@ export const NFAWorkspace: React.FC = () => {
     currentStepIndex,
     isGenerating,
     generateNFAFromPrompt,
+    setActivePage,
   } = useAutomata();
 
   const [activeTab, setActiveTab] = useState<NFATabId>('formal-def');
@@ -245,6 +246,7 @@ export const NFAWorkspace: React.FC = () => {
       const { dfaGraph } = convertNfaToDfa(graph);
       const laidOut = applyDagreLayout(dfaGraph);
       setGraph(laidOut);
+      setActivePage('dfa');
     } catch (err) {
       console.error('NFA to DFA conversion error:', err);
     }

@@ -1,6 +1,6 @@
 import type { AutomatonTransition } from '../types/automata';
 
-export const EPSILON_SYMBOLS = new Set(['ε', 'e', 'E', 'eps', 'epsilon', '']);
+export const EPSILON_SYMBOLS = new Set(['ε', 'eps', 'epsilon', '']);
 
 export function isEpsilonSymbol(symbol: string): boolean {
   return EPSILON_SYMBOLS.has(symbol.trim());

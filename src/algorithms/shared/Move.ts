@@ -11,10 +11,12 @@ export function computeMove(
     const stateTrans = transitions[state];
     if (!stateTrans) continue;
 
-    const targets = stateTrans[symbol];
-    if (targets && Array.isArray(targets)) {
-      for (const target of targets) {
-        result.add(target);
+    for (const [symKey, targets] of Object.entries(stateTrans)) {
+      const symList = symKey.split(',').map((s) => s.trim());
+      if (symList.includes(symbol) && Array.isArray(targets)) {
+        for (const target of targets) {
+          result.add(target);
+        }
       }
     }
   }
