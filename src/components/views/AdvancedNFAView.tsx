@@ -178,7 +178,10 @@ export const AdvancedNFAView: React.FC = () => {
     onAnimate: () => void;
   } | null>(null);
 
-  // Structural NFA for Graph A
+  // Saved Original Base NFA A (Preserves un-mutated input NFA A across operations)
+  const [savedBaseNFAA, setSavedBaseNFAA] = useState<NFA | null>(null);
+
+  // Structural NFA for Graph A (from current canvas)
   const currentNFAA: NFA = useMemo(() => {
     const states = graph.states.map((s) => s.id);
     const alphabet = graph.alphabet || ['0', '1'];
@@ -202,6 +205,11 @@ export const AdvancedNFAView: React.FC = () => {
     return { alphabet, states, startState, acceptStates, transitions };
   }, [graph]);
 
+  // Effective NFA A: Returns saved original base NFA A if operation was built instantly on canvas
+  const effectiveNFAA: NFA = useMemo(() => {
+    return savedBaseNFAA || currentNFAA;
+  }, [savedBaseNFAA, currentNFAA]);
+
   // Structural Target NFA B Object
   const targetNFAB: NFA = useMemo(() => {
     try {
@@ -216,7 +224,7 @@ export const AdvancedNFAView: React.FC = () => {
   // Single Canvas Dual Graph (NFA A & NFA B combined on the SAME canvas)
   const dualMergedGraph = useMemo(() => {
     // 1. Prefix-safe NFA A
-    const nfaA = currentNFAA;
+    const nfaA = effectiveNFAA;
     const statesA = nfaA.states.map((st) => `A_${st}`);
     const startA = `A_${nfaA.startState}`;
     const acceptA = nfaA.acceptStates.map((st) => `A_${st}`);
@@ -415,28 +423,32 @@ export const AdvancedNFAView: React.FC = () => {
 
   const handleRunNFAOp = (op: NFAOpType) => {
     try {
+      const inputA = effectiveNFAA;
+      if (!savedBaseNFAA) {
+        setSavedBaseNFAA(currentNFAA);
+      }
       let resNFA: NFA;
       let opName = '';
       if (op === 'UNION') {
-        resNFA = NFAOperations.union(currentNFAA, targetNFAB);
+        resNFA = NFAOperations.union(inputA, targetNFAB);
         opName = 'NFA Union (A ∪ B)';
       } else if (op === 'CONCAT') {
-        resNFA = NFAOperations.concat(currentNFAA, targetNFAB);
+        resNFA = NFAOperations.concat(inputA, targetNFAB);
         opName = 'NFA Concatenation (A · B)';
       } else if (op === 'STAR') {
-        resNFA = NFAOperations.star(currentNFAA);
+        resNFA = NFAOperations.star(inputA);
         opName = 'Kleene Star (A*)';
       } else if (op === 'PLUS') {
-        resNFA = NFAOperations.plus(currentNFAA);
+        resNFA = NFAOperations.plus(inputA);
         opName = 'Kleene Plus (A+)';
       } else if (op === 'OPTIONAL') {
-        resNFA = NFAOperations.optional(currentNFAA);
+        resNFA = NFAOperations.optional(inputA);
         opName = 'Optional NFA (A?)';
       } else if (op === 'REVERSE_B') {
         resNFA = NFAOperations.reverse(targetNFAB);
         opName = 'Reverse NFA B (B^R)';
       } else {
-        resNFA = NFAOperations.reverse(currentNFAA);
+        resNFA = NFAOperations.reverse(inputA);
         opName = 'Reverse NFA A (A^R)';
       }
 
@@ -467,8 +479,13 @@ export const AdvancedNFAView: React.FC = () => {
       REVERSE_B: 'Inverts all transition arrows and swaps start and accept states of NFA B.',
     };
 
+    // Save base NFA A if not saved already
+    if (!savedBaseNFAA) {
+      setSavedBaseNFAA(currentNFAA);
+    }
+
     // 1. Check if NFA A is empty
-    if (!currentNFAA || currentNFAA.states.length === 0) {
+    if (!effectiveNFAA || effectiveNFAA.states.length === 0) {
       setWarningModalConfig({
         title: '⚠️ Missing Input Automaton (NFA A)',
         message: `The operation "${titles[op]}" requires a valid input NFA A. Please create or load an NFA A first.`,
@@ -608,9 +625,15 @@ export const AdvancedNFAView: React.FC = () => {
               <input
                 type="text"
                 value={promptInput}
-                onChange={(e) => setPromptInput(e.target.value)}
+                onChange={(e) => {
+                  setPromptInput(e.target.value);
+                  setSavedBaseNFAA(null);
+                }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') generateNFAFromPrompt(promptInput);
+                  if (e.key === 'Enter') {
+                    setSavedBaseNFAA(null);
+                    generateNFAFromPrompt(promptInput);
+                  }
                 }}
                 placeholder="Type NFA pattern..."
                 className="w-full py-2 pl-3 pr-8 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 font-semibold focus:outline-none focus:border-sky-500 transition font-sans"
@@ -624,6 +647,21 @@ export const AdvancedNFAView: React.FC = () => {
               </button>
             </div>
 
+            {savedBaseNFAA && (
+              <button
+                type="button"
+                onClick={() => {
+                  const baseGraph = nfaToAutomatonGraph(savedBaseNFAA, `Input NFA A (${savedBaseNFAA.states.length} states)`);
+                  setGraph(baseGraph);
+                  setSavedBaseNFAA(null);
+                }}
+                className="w-full py-1 px-2 bg-sky-950/70 hover:bg-sky-900/90 text-sky-300 border border-sky-500/40 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition cursor-pointer"
+                title="Restore original un-operated input NFA A onto the canvas"
+              >
+                <Undo2 className="w-3 h-3 text-sky-400" /> Restore Base NFA A Canvas
+              </button>
+            )}
+
             {inputADropdownOpen && (
               <div className="absolute left-0 right-0 top-full mt-1 z-50 max-h-56 overflow-y-auto bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-1 space-y-1 custom-scrollbar animate-in fade-in zoom-in-95">
                 {ALL_AUTOMATA_PROMPTS.map((p, idx) => (
@@ -632,6 +670,7 @@ export const AdvancedNFAView: React.FC = () => {
                     type="button"
                     onClick={() => {
                       setPromptInput(p.prompt);
+                      setSavedBaseNFAA(null);
                       generateNFAFromPrompt(p.prompt);
                       setInputADropdownOpen(false);
                     }}
@@ -1144,7 +1183,7 @@ export const AdvancedNFAView: React.FC = () => {
       {/* Interactive NFA Operation Visualizer Modal (Animate & Learn) */}
       {nfaOpModalConfig && (
         <AnimatedNFAOperationModal
-          nfaA={currentNFAA}
+          nfaA={effectiveNFAA}
           nfaB={targetNFAB}
           operation={nfaOpModalConfig.operation}
           onClose={() => setNfaOpModalConfig(null)}
