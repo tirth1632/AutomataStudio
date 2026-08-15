@@ -25,6 +25,29 @@ export class NFAIntentParser {
   }
 
   private static parseSingle(promptStr: string): Intent {
+    const rawTrimmed = promptStr.trim();
+    const regexPrefixMatch = rawTrimmed.match(/^(?:regex\s*:\s*|regex\s+)?(.+)/i);
+    const candidatePattern = regexPrefixMatch ? regexPrefixMatch[1].trim() : rawTrimmed;
+
+    const isExplicitRegexPrefix = /^(?:regex\s*:\s*|regex\s+)/i.test(rawTrimmed);
+    const containsRegexOps =
+      /[\(\|\*\+\?]/i.test(candidatePattern) &&
+      !/^(?:length|binary|number|contains|starts|ends|even|odd|exactly|at least|all|accept|reject|not|first|second|third|fourth|fifth|last)/i.test(
+        rawTrimmed
+      );
+
+    if (isExplicitRegexPrefix || containsRegexOps) {
+      const cleanRegex = candidatePattern.replace(/^(?:regex\s*:\s*|regex\s+)/i, '').trim();
+      if (cleanRegex.length > 0) {
+        return {
+          type: 'REGEX',
+          regexStr: cleanRegex,
+          pattern: cleanRegex,
+          rawPrompt: promptStr,
+        };
+      }
+    }
+
     const raw = promptStr.trim().toLowerCase();
 
     // Negative Language Prompts

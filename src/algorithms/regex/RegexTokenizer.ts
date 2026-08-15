@@ -42,7 +42,7 @@ export function tokenizeRegex(pattern: string): Token[] {
     } else if (char === ')') {
       rawTokens.push({ type: 'RPAREN', value: ')' });
       i++;
-    } else if (char === 'ε' || char === 'e' || char === 'E') {
+    } else if (char === 'ε') {
       rawTokens.push({ type: 'EPSILON', value: 'ε' });
       i++;
     } else {

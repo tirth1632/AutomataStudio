@@ -6,6 +6,31 @@ import type { EngineIntent } from '../../../types/intent';
  */
 export class IntentParser {
   public static parse(promptStr: string): EngineIntent {
+    const rawTrimmed = promptStr.trim();
+
+    // 0. REGEX PATTERN DETECTOR (Handles "Regex (a|b)*abb", "Regex: (a|b)*abb", "(a|b)*abb", "(0|1)*101", "a|b", etc.)
+    const regexPrefixMatch = rawTrimmed.match(/^(?:regex\s*:\s*|regex\s+)?(.+)/i);
+    const candidatePattern = regexPrefixMatch ? regexPrefixMatch[1].trim() : rawTrimmed;
+
+    const isExplicitRegexPrefix = /^(?:regex\s*:\s*|regex\s+)/i.test(rawTrimmed);
+    const containsRegexOps =
+      /[\(\|\*\+\?]/i.test(candidatePattern) &&
+      !/^(?:length|binary|number|contains|starts|ends|even|odd|exactly|at least|all|accept|reject|not|first|second|third|fourth|fifth|last)/i.test(
+        rawTrimmed
+      );
+
+    if (isExplicitRegexPrefix || containsRegexOps) {
+      const cleanRegex = candidatePattern.replace(/^(?:regex\s*:\s*|regex\s+)/i, '').trim();
+      if (cleanRegex.length > 0) {
+        const rawSyms = Array.from(new Set(cleanRegex.replace(/[\(\)\|\*\+\?\.\s\\]/g, '').split(''))).sort();
+        return {
+          type: 'REGEX',
+          regex: cleanRegex,
+          alphabet: rawSyms.length > 0 ? rawSyms : undefined,
+        };
+      }
+    }
+
     let p = promptStr.trim().toLowerCase();
     const numberWords: Record<string, string> = { one: '1', two: '2', three: '3', four: '4', five: '5' };
     p = p.replace(/\b(one|two|three|four|five)\b/g, (word) => numberWords[word]);

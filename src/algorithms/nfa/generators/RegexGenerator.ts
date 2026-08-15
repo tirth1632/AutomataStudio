@@ -9,7 +9,8 @@ export class RegexGenerator implements Generator {
   }
 
   generate(intent: Intent): NFA {
-    const pattern = intent.regexStr || intent.pattern || '(0+1)*101';
+    let pattern = (intent.regexStr || intent.pattern || '(0+1)*101').trim();
+    pattern = pattern.replace(/^regex\s*:\s*/i, '').replace(/^regex\s+/i, '').trim();
     const raw = compileRegexToNFA(pattern);
 
     return {

@@ -9,7 +9,8 @@ export class RegexGenerator implements Generator {
   }
 
   generate(intent: EngineIntent): DFA {
-    const regexPattern = intent.regex || '(0|1)*101';
+    let regexPattern = (intent.regex || '(0|1)*101').trim();
+    regexPattern = regexPattern.replace(/^regex\s*:\s*/i, '').replace(/^regex\s+/i, '').trim();
     const { graph: nfaGraph } = regexToNFA(regexPattern);
     const { dfaGraph } = convertNfaToDfa(nfaGraph);
 
