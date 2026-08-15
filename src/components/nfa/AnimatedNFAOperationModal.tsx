@@ -10,7 +10,6 @@ import {
   ArrowRight,
   Layers,
   Check,
-  Cpu,
   Table as TableIcon,
   Sparkles,
 } from 'lucide-react';
@@ -285,41 +284,217 @@ export const AnimatedNFAOperationModal: React.FC<AnimatedNFAOperationModalProps>
   // Full final result graph for applying to main workspace
   const finalResultGraph = useMemo(() => nfaToAutomatonGraph(resultNFA, 'Result NFA'), [resultNFA]);
 
-  // Animated construction steps metadata
+  // Operation-specific animated construction steps metadata
   const steps = useMemo(() => {
+    if (operation === 'UNION') {
+      return [
+        {
+          stepIndex: 1,
+          phaseName: '1. Isolate Inputs',
+          explanation: 'Isolated NFA A and NFA B state namespaces to prevent state ID collisions.',
+          detail: `NFA A has ${nfaA.states.length} states. NFA B has ${nfaB?.states.length || 0} states.`,
+        },
+        {
+          stepIndex: 2,
+          phaseName: `2. Create Start State (${resultNFA.startState})`,
+          explanation: `Created new unified start state '${resultNFA.startState}' with ε-transitions to NFA A and NFA B.`,
+          detail: `Added ε-branches pointing to ${nfaA.startState} and ${nfaB?.startState || ''}.`,
+        },
+        {
+          stepIndex: 3,
+          phaseName: '3. Copy Sub-Automata Edges',
+          explanation: 'Preserved all internal transition functions δ_A and δ_B intact.',
+          detail: `Merged ${resultNFA.states.length - 1} internal states and symbol transitions.`,
+        },
+        {
+          stepIndex: 4,
+          phaseName: '4. Combine Accept States',
+          explanation: 'Marked all original accept states from NFA A and NFA B as valid accept states.',
+          detail: `Accept states: {${resultNFA.acceptStates.join(', ')}}.`,
+        },
+        {
+          stepIndex: 5,
+          phaseName: '5. Union Finished (A ∪ B)',
+          explanation: `Successfully constructed Union NFA accepting L(A) ∪ L(B).`,
+          detail: `Result has ${resultNFA.states.length} states and ${resultNFA.acceptStates.length} accept states.`,
+        },
+      ];
+    }
+
+    if (operation === 'CONCAT') {
+      return [
+        {
+          stepIndex: 1,
+          phaseName: '1. Isolate Inputs',
+          explanation: 'Prepared state namespaces for NFA A and NFA B in serial chain order.',
+          detail: `NFA A has ${nfaA.states.length} states. NFA B has ${nfaB?.states.length || 0} states.`,
+        },
+        {
+          stepIndex: 2,
+          phaseName: `2. Set Start State (${resultNFA.startState})`,
+          explanation: `Set initial start state to NFA A's start state '${resultNFA.startState}'.`,
+          detail: `Start state is ${resultNFA.startState}.`,
+        },
+        {
+          stepIndex: 3,
+          phaseName: '3. Copy Sub-Automata Edges',
+          explanation: 'Preserved internal transitions of both NFA A and NFA B.',
+          detail: `Merged state transitions for serial processing.`,
+        },
+        {
+          stepIndex: 4,
+          phaseName: '4. Connect A Accept to B Start via ε',
+          explanation: 'Added spontaneous ε-transitions from NFA A accept states to NFA B start state.',
+          detail: `Connected NFA A accept states to ${nfaB?.startState || ''} via ε.`,
+        },
+        {
+          stepIndex: 5,
+          phaseName: '5. Concatenation Finished (A · B)',
+          explanation: 'Successfully constructed Concatenation NFA accepting L(A) · L(B).',
+          detail: `Result has ${resultNFA.states.length} states and accept states {${resultNFA.acceptStates.join(', ')}}.`,
+        },
+      ];
+    }
+
+    if (operation === 'STAR') {
+      return [
+        {
+          stepIndex: 1,
+          phaseName: '1. Isolate Input Automaton',
+          explanation: 'Isolated input NFA A state namespace.',
+          detail: `NFA A has ${nfaA.states.length} states.`,
+        },
+        {
+          stepIndex: 2,
+          phaseName: `2. Create Accepting Start State (${resultNFA.startState})`,
+          explanation: `Created new global start state '${resultNFA.startState}' (accepting to allow empty string ε).`,
+          detail: `Added new start state '${resultNFA.startState}'.`,
+        },
+        {
+          stepIndex: 3,
+          phaseName: '3. Connect Start ε-Branch to A',
+          explanation: `Added ε-transition from '${resultNFA.startState}' to original start state '${nfaA.startState}'.`,
+          detail: `Created branch ${resultNFA.startState} ➔ ε ➔ ${nfaA.startState}.`,
+        },
+        {
+          stepIndex: 4,
+          phaseName: '4. Add Accept Loop ε-Edges',
+          explanation: 'Added ε-loop transitions from accept states back to original start state.',
+          detail: `Loop ε-edges added for iteration repeat.`,
+        },
+        {
+          stepIndex: 5,
+          phaseName: '5. Kleene Star Finished (A*)',
+          explanation: 'Successfully constructed Kleene Star NFA accepting L(A)*.',
+          detail: `Result has ${resultNFA.states.length} states and accept states {${resultNFA.acceptStates.join(', ')}}.`,
+        },
+      ];
+    }
+
+    if (operation === 'PLUS') {
+      return [
+        {
+          stepIndex: 1,
+          phaseName: '1. Isolate Input Automaton',
+          explanation: 'Isolated input NFA A state namespace.',
+          detail: `NFA A has ${nfaA.states.length} states.`,
+        },
+        {
+          stepIndex: 2,
+          phaseName: `2. Retain Initial Start State (${resultNFA.startState})`,
+          explanation: `Set initial start state to '${nfaA.startState}' (requires at least 1 match).`,
+          detail: `Start state is ${resultNFA.startState}.`,
+        },
+        {
+          stepIndex: 3,
+          phaseName: '3. Copy Internal Symbol Edges',
+          explanation: 'Preserved all internal transition functions of NFA A.',
+          detail: `Internal transition maps copied.`,
+        },
+        {
+          stepIndex: 4,
+          phaseName: '4. Add Accept Repeat Loop ε-Edges',
+          explanation: 'Added ε-loop transitions from accept states back to start state.',
+          detail: `Loop ε-edges enabled for 1 or more repetitions.`,
+        },
+        {
+          stepIndex: 5,
+          phaseName: '5. Kleene Plus Finished (A+)',
+          explanation: 'Successfully constructed Kleene Plus NFA accepting L(A)+.',
+          detail: `Result has ${resultNFA.states.length} states.`,
+        },
+      ];
+    }
+
+    if (operation === 'OPTIONAL') {
+      return [
+        {
+          stepIndex: 1,
+          phaseName: '1. Isolate Input Automaton',
+          explanation: 'Isolated input NFA A state namespace.',
+          detail: `NFA A has ${nfaA.states.length} states.`,
+        },
+        {
+          stepIndex: 2,
+          phaseName: `2. Retain Initial Start State (${resultNFA.startState})`,
+          explanation: `Set initial start state to '${resultNFA.startState}'.`,
+          detail: `Start state is ${resultNFA.startState}.`,
+        },
+        {
+          stepIndex: 3,
+          phaseName: '3. Copy Internal Symbol Edges',
+          explanation: 'Preserved all internal transition functions of NFA A.',
+          detail: `Internal transition maps copied.`,
+        },
+        {
+          stepIndex: 4,
+          phaseName: '4. Mark Start State as Accept State',
+          explanation: 'Marked start state as accepting (or added ε-edge) to allow empty string ε.',
+          detail: `Accept states: {${resultNFA.acceptStates.join(', ')}}.`,
+        },
+        {
+          stepIndex: 5,
+          phaseName: '5. Optional Finished (A?)',
+          explanation: 'Successfully constructed Optional NFA accepting L(A) ∪ {ε}.',
+          detail: `Result has ${resultNFA.states.length} states.`,
+        },
+      ];
+    }
+
+    // REVERSE_A / REVERSE_B
     return [
       {
         stepIndex: 1,
-        phaseName: '1. Isolate Input Automata',
-        explanation: `Isolated input state namespaces. Result canvas is initial empty state.`,
-        detail: `NFA A has ${nfaA.states.length} states. ${isBinaryOp && nfaB ? `NFA B has ${nfaB.states.length} states.` : ''}`,
+        phaseName: '1. Isolate Input Automaton',
+        explanation: 'Prepared input state namespace for inversion.',
+        detail: `Input automaton has ${resultNFA.states.length} states.`,
       },
       {
         stepIndex: 2,
-        phaseName: '2. Create Initial Start State',
-        explanation: `Created new global initial start state '${resultNFA.startState}'.`,
-        detail: `Added start state node '${resultNFA.startState}'.`,
+        phaseName: '2. Invert All Transition Edges',
+        explanation: 'Reversed direction of every transition arrow: u ➔ a ➔ v becomes v ➔ a ➔ u.',
+        detail: 'Flipped transition mapping directions.',
       },
       {
         stepIndex: 3,
-        phaseName: '3. Merge Internal Transitions',
-        explanation: `Preserved all internal transition functions δ_A and δ_B without altering language behavior.`,
-        detail: `Merged internal state nodes and symbol transition functions.`,
+        phaseName: '3. Swap Start and Accept States',
+        explanation: 'Swapped start state and accept states.',
+        detail: `New start state '${resultNFA.startState}', new accept states {${resultNFA.acceptStates.join(', ')}}.`,
       },
       {
         stepIndex: 4,
-        phaseName: '4. Connect Accept States',
-        explanation: `Attached spontaneous ε-transitions connecting start and accept states.`,
-        detail: `Connected loop/branching ε-edges to accept states {${resultNFA.acceptStates.join(', ')}}.`,
+        phaseName: '4. Add ε-Branches for Multiple Accepts',
+        explanation: 'Attached spontaneous ε-branches if original NFA had multiple accept states.',
+        detail: 'Constructed single unified start state.',
       },
       {
         stepIndex: 5,
-        phaseName: '5. Construction Finished',
-        explanation: `Successfully constructed equivalent NFA for ${operationTitle}.`,
-        detail: `Result NFA has ${resultNFA.states.length} states, ${resultNFA.acceptStates.length} accept states, and ${resultNFA.alphabet.length} symbols.`,
+        phaseName: '5. Reverse Finished (A^R)',
+        explanation: `Successfully constructed Reverse NFA accepting language reversal.`,
+        detail: `Result NFA has ${resultNFA.states.length} states.`,
       },
     ];
-  }, [nfaA, nfaB, resultNFA, isBinaryOp, operationTitle]);
+  }, [nfaA, nfaB, resultNFA, operation, operationTitle]);
 
   const activeStep = steps[currentStepIndex] || steps[0];
 
