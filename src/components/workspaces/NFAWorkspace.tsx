@@ -43,6 +43,7 @@ import { NFAToDFAStepByStepModal } from '../nfa/NFAToDFAStepByStepModal';
 import type { NFA } from '../../algorithms/nfa/NFA';
 import type { AutomatonGraph } from '../../types/automata';
 import { convertNfaToDfa } from '../../algorithms/subsetConstruction';
+import { minimizeDFA } from '../../algorithms/hopcroftMinimization';
 import { applyDagreLayout } from '../../services/layoutEngine';
 import { ALL_AUTOMATA_PROMPTS } from '../../data/allAutomataPrompts';
 import {
@@ -244,9 +245,11 @@ export const NFAWorkspace: React.FC = () => {
   const handleConvertToDFA = () => {
     try {
       const { dfaGraph } = convertNfaToDfa(graph);
-      const laidOut = applyDagreLayout(dfaGraph);
+      const minResult = minimizeDFA(dfaGraph);
+      const finalGraph = minResult?.minimizedGraph ? minResult.minimizedGraph : dfaGraph;
+      const laidOut = applyDagreLayout(finalGraph);
       setGraph(laidOut);
-      setActivePage('dfa');
+      // Stay on current NFA workspace page as requested by user
     } catch (err) {
       console.error('NFA to DFA conversion error:', err);
     }
