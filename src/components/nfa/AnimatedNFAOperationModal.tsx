@@ -196,9 +196,14 @@ export const AnimatedNFAOperationModal: React.FC<AnimatedNFAOperationModalProps>
   const graphA = useMemo(() => nfaToAutomatonGraph(nfaA, 'NFA A'), [nfaA]);
   const graphB = useMemo(() => (nfaB ? nfaToAutomatonGraph(nfaB, 'NFA B') : null), [nfaB]);
 
-  // Progressive Step-by-Step Result Graph & NFA construction
+  // Progressive 8-Step Granular Result Graph & NFA construction
   const { partialResultNFA, stepResultGraph, activeHighlightedStates, isEmptyResultStep } = useMemo(() => {
-    // Step 1: Isolate Input Automata -> Result Canvas is EMPTY
+    const remainingStates = resultNFA.states.filter((s) => s !== resultNFA.startState);
+    const midPoint = Math.max(1, Math.ceil(remainingStates.length / 2));
+    const groupA = remainingStates.slice(0, midPoint);
+    const groupB = remainingStates.slice(midPoint);
+
+    // Step 1: Empty Canvas
     if (currentStepIndex === 0) {
       const emptyNFA: NFA = {
         alphabet: resultNFA.alphabet,
@@ -222,57 +227,144 @@ export const AnimatedNFAOperationModal: React.FC<AnimatedNFAOperationModalProps>
       };
     }
 
-    // Step 2: Create Initial Start State -> Only startState q0
+    // Step 2: Create Start State Node (q0) Only
     if (currentStepIndex === 1) {
-      const startOnlyNFA: NFA = {
+      const pNFA: NFA = {
         alphabet: resultNFA.alphabet,
         states: [resultNFA.startState],
         startState: resultNFA.startState,
         acceptStates: resultNFA.acceptStates.filter((s) => s === resultNFA.startState),
         transitions: {},
       };
-      const g = nfaToAutomatonGraph(startOnlyNFA, 'Result NFA (Step 2: Start State)');
       return {
-        partialResultNFA: startOnlyNFA,
-        stepResultGraph: g,
+        partialResultNFA: pNFA,
+        stepResultGraph: nfaToAutomatonGraph(pNFA, 'Result NFA (Step 2: Start State)'),
         activeHighlightedStates: [resultNFA.startState],
         isEmptyResultStep: false,
       };
     }
 
-    // Step 3: Merge Internal Transitions -> Internal states & internal transitions
+    // Step 3: Add NFA A Sub-Automaton States
     if (currentStepIndex === 2) {
-      const internalTrans: Record<string, Record<string, string[]>> = {};
-      for (const st of resultNFA.states) {
-        internalTrans[st] = {};
-        const sMap = resultNFA.transitions[st] || {};
-        for (const sym of Object.keys(sMap)) {
-          if (st === resultNFA.startState && sym === 'ε') continue;
-          internalTrans[st][sym] = [...(sMap[sym] || [])];
-        }
-      }
-
-      const step3NFA: NFA = {
+      const statesStep3 = Array.from(new Set([resultNFA.startState, ...groupA]));
+      const pNFA: NFA = {
         alphabet: resultNFA.alphabet,
-        states: [...resultNFA.states],
+        states: statesStep3,
         startState: resultNFA.startState,
-        acceptStates: resultNFA.acceptStates.filter((s) => s !== resultNFA.startState),
-        transitions: internalTrans,
+        acceptStates: [],
+        transitions: {},
       };
-      const g = nfaToAutomatonGraph(step3NFA, 'Result NFA (Step 3: Internal Edges)');
       return {
-        partialResultNFA: step3NFA,
-        stepResultGraph: g,
-        activeHighlightedStates: resultNFA.states.filter((s) => s !== resultNFA.startState),
+        partialResultNFA: pNFA,
+        stepResultGraph: nfaToAutomatonGraph(pNFA, 'Result NFA (Step 3: NFA A States)'),
+        activeHighlightedStates: groupA,
         isEmptyResultStep: false,
       };
     }
 
-    // Step 4 & 5: Complete Result NFA
-    const finalGraph = nfaToAutomatonGraph(
-      resultNFA,
-      `Result NFA (${currentStepIndex === 4 ? 'Final' : 'Step 4: Connecting Edges'})`
-    );
+    // Step 4: Add NFA A Internal Symbol Transitions
+    if (currentStepIndex === 3) {
+      const statesStep4 = Array.from(new Set([resultNFA.startState, ...groupA]));
+      const transStep4: Record<string, Record<string, string[]>> = {};
+      for (const st of statesStep4) {
+        transStep4[st] = {};
+        const sMap = resultNFA.transitions[st] || {};
+        for (const sym of Object.keys(sMap)) {
+          if (st === resultNFA.startState && sym === 'ε') continue;
+          const targets = (sMap[sym] || []).filter((t) => statesStep4.includes(t));
+          if (targets.length > 0) transStep4[st][sym] = targets;
+        }
+      }
+      const pNFA: NFA = {
+        alphabet: resultNFA.alphabet,
+        states: statesStep4,
+        startState: resultNFA.startState,
+        acceptStates: [],
+        transitions: transStep4,
+      };
+      return {
+        partialResultNFA: pNFA,
+        stepResultGraph: nfaToAutomatonGraph(pNFA, 'Result NFA (Step 4: NFA A Edges)'),
+        activeHighlightedStates: groupA,
+        isEmptyResultStep: false,
+      };
+    }
+
+    // Step 5: Add NFA B States (or remaining state nodes)
+    if (currentStepIndex === 4) {
+      const statesStep5 = [...resultNFA.states];
+      const transStep5: Record<string, Record<string, string[]>> = {};
+      for (const st of groupA) {
+        transStep5[st] = {};
+        const sMap = resultNFA.transitions[st] || {};
+        for (const sym of Object.keys(sMap)) {
+          if (st === resultNFA.startState && sym === 'ε') continue;
+          const targets = (sMap[sym] || []).filter((t) => groupA.includes(t));
+          if (targets.length > 0) transStep5[st][sym] = targets;
+        }
+      }
+      const pNFA: NFA = {
+        alphabet: resultNFA.alphabet,
+        states: statesStep5,
+        startState: resultNFA.startState,
+        acceptStates: [],
+        transitions: transStep5,
+      };
+      return {
+        partialResultNFA: pNFA,
+        stepResultGraph: nfaToAutomatonGraph(pNFA, 'Result NFA (Step 5: NFA B States)'),
+        activeHighlightedStates: groupB,
+        isEmptyResultStep: false,
+      };
+    }
+
+    // Step 6: Add NFA B Symbol Transitions (All internal symbol transitions)
+    if (currentStepIndex === 5) {
+      const transStep6: Record<string, Record<string, string[]>> = {};
+      for (const st of resultNFA.states) {
+        transStep6[st] = {};
+        const sMap = resultNFA.transitions[st] || {};
+        for (const sym of Object.keys(sMap)) {
+          if (sym === 'ε' && (st === resultNFA.startState || resultNFA.acceptStates.includes(st))) {
+            continue; // omit linking ε edges until step 7
+          }
+          transStep6[st][sym] = [...(sMap[sym] || [])];
+        }
+      }
+      const pNFA: NFA = {
+        alphabet: resultNFA.alphabet,
+        states: [...resultNFA.states],
+        startState: resultNFA.startState,
+        acceptStates: [],
+        transitions: transStep6,
+      };
+      return {
+        partialResultNFA: pNFA,
+        stepResultGraph: nfaToAutomatonGraph(pNFA, 'Result NFA (Step 6: Symbol Edges)'),
+        activeHighlightedStates: groupB,
+        isEmptyResultStep: false,
+      };
+    }
+
+    // Step 7: Add Connecting ε-Transitions (Start branches & accept loops)
+    if (currentStepIndex === 6) {
+      const pNFA: NFA = {
+        alphabet: resultNFA.alphabet,
+        states: [...resultNFA.states],
+        startState: resultNFA.startState,
+        acceptStates: [...resultNFA.acceptStates],
+        transitions: { ...resultNFA.transitions },
+      };
+      return {
+        partialResultNFA: pNFA,
+        stepResultGraph: nfaToAutomatonGraph(pNFA, 'Result NFA (Step 7: ε-Edges)'),
+        activeHighlightedStates: resultNFA.acceptStates,
+        isEmptyResultStep: false,
+      };
+    }
+
+    // Step 8 (Index 7): Complete Final Result NFA
+    const finalGraph = nfaToAutomatonGraph(resultNFA, 'Result NFA (Final)');
     return {
       partialResultNFA: resultNFA,
       stepResultGraph: finalGraph,
@@ -284,7 +376,7 @@ export const AnimatedNFAOperationModal: React.FC<AnimatedNFAOperationModalProps>
   // Full final result graph for applying to main workspace
   const finalResultGraph = useMemo(() => nfaToAutomatonGraph(resultNFA, 'Result NFA'), [resultNFA]);
 
-  // Operation-specific animated construction steps metadata
+  // Granular 8-Step Operation Construction Metadata
   const steps = useMemo(() => {
     if (operation === 'UNION') {
       return [
@@ -297,26 +389,44 @@ export const AnimatedNFAOperationModal: React.FC<AnimatedNFAOperationModalProps>
         {
           stepIndex: 2,
           phaseName: `2. Create Start State (${resultNFA.startState})`,
-          explanation: `Created new unified start state '${resultNFA.startState}' with ε-transitions to NFA A and NFA B.`,
-          detail: `Added ε-branches pointing to ${nfaA.startState} and ${nfaB?.startState || ''}.`,
+          explanation: `Created new global initial start state node '${resultNFA.startState}'.`,
+          detail: `Placed initial start state node '${resultNFA.startState}'.`,
         },
         {
           stepIndex: 3,
-          phaseName: '3. Copy Sub-Automata Edges',
-          explanation: 'Preserved all internal transition functions δ_A and δ_B intact.',
-          detail: `Merged ${resultNFA.states.length - 1} internal states and symbol transitions.`,
+          phaseName: '3. Place NFA A State Nodes',
+          explanation: 'Added internal state nodes of NFA A to result workspace.',
+          detail: `Placed NFA A state nodes.`,
         },
         {
           stepIndex: 4,
-          phaseName: '4. Combine Accept States',
-          explanation: 'Marked all original accept states from NFA A and NFA B as valid accept states.',
-          detail: `Accept states: {${resultNFA.acceptStates.join(', ')}}.`,
+          phaseName: '4. Add NFA A Symbol Transitions',
+          explanation: 'Added internal symbol transition edges of NFA A.',
+          detail: `Preserved δ_A internal transition function.`,
         },
         {
           stepIndex: 5,
-          phaseName: '5. Union Finished (A ∪ B)',
-          explanation: `Successfully constructed Union NFA accepting L(A) ∪ L(B).`,
-          detail: `Result has ${resultNFA.states.length} states and ${resultNFA.acceptStates.length} accept states.`,
+          phaseName: '5. Place NFA B State Nodes',
+          explanation: 'Added internal state nodes of NFA B to result workspace.',
+          detail: `Placed NFA B state nodes.`,
+        },
+        {
+          stepIndex: 6,
+          phaseName: '6. Add NFA B Symbol Transitions',
+          explanation: 'Added internal symbol transition edges of NFA B.',
+          detail: `Preserved δ_B internal transition function.`,
+        },
+        {
+          stepIndex: 7,
+          phaseName: '7. Attach Spontaneous ε-Branches',
+          explanation: `Added ε-transitions branching from '${resultNFA.startState}' to NFA A and NFA B start states.`,
+          detail: `Created branches ${resultNFA.startState} ➔ ε ➔ ${nfaA.startState} and ${nfaB?.startState || ''}.`,
+        },
+        {
+          stepIndex: 8,
+          phaseName: '8. Finalize Accept States (A ∪ B)',
+          explanation: 'Marked all accept states of NFA A and NFA B as final accept states.',
+          detail: `Accept states: {${resultNFA.acceptStates.join(', ')}}.`,
         },
       ];
     }
@@ -337,19 +447,37 @@ export const AnimatedNFAOperationModal: React.FC<AnimatedNFAOperationModalProps>
         },
         {
           stepIndex: 3,
-          phaseName: '3. Copy Sub-Automata Edges',
-          explanation: 'Preserved internal transitions of both NFA A and NFA B.',
-          detail: `Merged state transitions for serial processing.`,
+          phaseName: '3. Place NFA A State Nodes',
+          explanation: 'Added internal state nodes of NFA A.',
+          detail: `Placed NFA A state nodes.`,
         },
         {
           stepIndex: 4,
-          phaseName: '4. Connect A Accept to B Start via ε',
+          phaseName: '4. Add NFA A Symbol Transitions',
+          explanation: 'Added internal symbol transitions of NFA A.',
+          detail: `Preserved δ_A internal transition function.`,
+        },
+        {
+          stepIndex: 5,
+          phaseName: '5. Place NFA B State Nodes',
+          explanation: 'Added internal state nodes of NFA B.',
+          detail: `Placed NFA B state nodes.`,
+        },
+        {
+          stepIndex: 6,
+          phaseName: '6. Add NFA B Symbol Transitions',
+          explanation: 'Added internal symbol transitions of NFA B.',
+          detail: `Preserved δ_B internal transition function.`,
+        },
+        {
+          stepIndex: 7,
+          phaseName: '7. Connect A Accept to B Start via ε',
           explanation: 'Added spontaneous ε-transitions from NFA A accept states to NFA B start state.',
           detail: `Connected NFA A accept states to ${nfaB?.startState || ''} via ε.`,
         },
         {
-          stepIndex: 5,
-          phaseName: '5. Concatenation Finished (A · B)',
+          stepIndex: 8,
+          phaseName: '8. Concatenation Finished (A · B)',
           explanation: 'Successfully constructed Concatenation NFA accepting L(A) · L(B).',
           detail: `Result has ${resultNFA.states.length} states and accept states {${resultNFA.acceptStates.join(', ')}}.`,
         },
@@ -366,25 +494,43 @@ export const AnimatedNFAOperationModal: React.FC<AnimatedNFAOperationModalProps>
         },
         {
           stepIndex: 2,
-          phaseName: `2. Create Accepting Start State (${resultNFA.startState})`,
-          explanation: `Created new global start state '${resultNFA.startState}' (accepting to allow empty string ε).`,
-          detail: `Added new start state '${resultNFA.startState}'.`,
+          phaseName: `2. Create Start State (${resultNFA.startState})`,
+          explanation: `Created new global start state node '${resultNFA.startState}'.`,
+          detail: `Placed start state node '${resultNFA.startState}'.`,
         },
         {
           stepIndex: 3,
-          phaseName: '3. Connect Start ε-Branch to A',
+          phaseName: '3. Mark Start State as Accepting',
+          explanation: `Marked '${resultNFA.startState}' as an accept state to allow empty string ε.`,
+          detail: `Added '${resultNFA.startState}' to accept states.`,
+        },
+        {
+          stepIndex: 4,
+          phaseName: '4. Place NFA A State Nodes',
+          explanation: 'Added internal state nodes of NFA A.',
+          detail: `Placed NFA A state nodes.`,
+        },
+        {
+          stepIndex: 5,
+          phaseName: '5. Add NFA A Symbol Transitions',
+          explanation: 'Added internal symbol transition edges of NFA A.',
+          detail: `Preserved δ_A internal transition function.`,
+        },
+        {
+          stepIndex: 6,
+          phaseName: '6. Connect Start ε-Branch to A',
           explanation: `Added ε-transition from '${resultNFA.startState}' to original start state '${nfaA.startState}'.`,
           detail: `Created branch ${resultNFA.startState} ➔ ε ➔ ${nfaA.startState}.`,
         },
         {
-          stepIndex: 4,
-          phaseName: '4. Add Accept Loop ε-Edges',
+          stepIndex: 7,
+          phaseName: '7. Add Repeat Loop ε-Edges',
           explanation: 'Added ε-loop transitions from accept states back to original start state.',
           detail: `Loop ε-edges added for iteration repeat.`,
         },
         {
-          stepIndex: 5,
-          phaseName: '5. Kleene Star Finished (A*)',
+          stepIndex: 8,
+          phaseName: '8. Kleene Star Complete (A*)',
           explanation: 'Successfully constructed Kleene Star NFA accepting L(A)*.',
           detail: `Result has ${resultNFA.states.length} states and accept states {${resultNFA.acceptStates.join(', ')}}.`,
         },
@@ -401,25 +547,43 @@ export const AnimatedNFAOperationModal: React.FC<AnimatedNFAOperationModalProps>
         },
         {
           stepIndex: 2,
-          phaseName: `2. Retain Initial Start State (${resultNFA.startState})`,
+          phaseName: `2. Set Start State (${resultNFA.startState})`,
           explanation: `Set initial start state to '${nfaA.startState}' (requires at least 1 match).`,
           detail: `Start state is ${resultNFA.startState}.`,
         },
         {
           stepIndex: 3,
-          phaseName: '3. Copy Internal Symbol Edges',
-          explanation: 'Preserved all internal transition functions of NFA A.',
-          detail: `Internal transition maps copied.`,
+          phaseName: '3. Place NFA A State Nodes',
+          explanation: 'Added internal state nodes of NFA A.',
+          detail: `Placed NFA A state nodes.`,
         },
         {
           stepIndex: 4,
-          phaseName: '4. Add Accept Repeat Loop ε-Edges',
+          phaseName: '4. Add NFA A Symbol Transitions',
+          explanation: 'Added internal symbol transition edges of NFA A.',
+          detail: `Preserved δ_A internal transition function.`,
+        },
+        {
+          stepIndex: 5,
+          phaseName: '5. Mark Original Accept States',
+          explanation: 'Highlighted accept states of NFA A.',
+          detail: `Accept states: {${resultNFA.acceptStates.join(', ')}}.`,
+        },
+        {
+          stepIndex: 6,
+          phaseName: '6. Add Repeat Loop ε-Edges',
           explanation: 'Added ε-loop transitions from accept states back to start state.',
           detail: `Loop ε-edges enabled for 1 or more repetitions.`,
         },
         {
-          stepIndex: 5,
-          phaseName: '5. Kleene Plus Finished (A+)',
+          stepIndex: 7,
+          phaseName: '7. Enforce Non-Empty Requirement',
+          explanation: 'Verified requiring at least 1 matching iteration.',
+          detail: 'Non-empty language requirement enforced.',
+        },
+        {
+          stepIndex: 8,
+          phaseName: '8. Kleene Plus Complete (A+)',
           explanation: 'Successfully constructed Kleene Plus NFA accepting L(A)+.',
           detail: `Result has ${resultNFA.states.length} states.`,
         },
@@ -436,25 +600,43 @@ export const AnimatedNFAOperationModal: React.FC<AnimatedNFAOperationModalProps>
         },
         {
           stepIndex: 2,
-          phaseName: `2. Retain Initial Start State (${resultNFA.startState})`,
+          phaseName: `2. Set Start State (${resultNFA.startState})`,
           explanation: `Set initial start state to '${resultNFA.startState}'.`,
           detail: `Start state is ${resultNFA.startState}.`,
         },
         {
           stepIndex: 3,
-          phaseName: '3. Copy Internal Symbol Edges',
-          explanation: 'Preserved all internal transition functions of NFA A.',
-          detail: `Internal transition maps copied.`,
+          phaseName: '3. Place NFA A State Nodes',
+          explanation: 'Added internal state nodes of NFA A.',
+          detail: `Placed NFA A state nodes.`,
         },
         {
           stepIndex: 4,
-          phaseName: '4. Mark Start State as Accept State',
+          phaseName: '4. Add NFA A Symbol Transitions',
+          explanation: 'Added internal symbol transition edges of NFA A.',
+          detail: `Preserved δ_A internal transition function.`,
+        },
+        {
+          stepIndex: 5,
+          phaseName: '5. Mark Original Accept States',
+          explanation: 'Highlighted accept states of NFA A.',
+          detail: `Accept states: {${resultNFA.acceptStates.join(', ')}}.`,
+        },
+        {
+          stepIndex: 6,
+          phaseName: '6. Mark Start State as Accepting',
           explanation: 'Marked start state as accepting (or added ε-edge) to allow empty string ε.',
           detail: `Accept states: {${resultNFA.acceptStates.join(', ')}}.`,
         },
         {
-          stepIndex: 5,
-          phaseName: '5. Optional Finished (A?)',
+          stepIndex: 7,
+          phaseName: '7. Verify Optional Bypass Path',
+          explanation: 'Verified 0 or 1 match paths.',
+          detail: 'Optional language requirement enforced.',
+        },
+        {
+          stepIndex: 8,
+          phaseName: '8. Optional Complete (A?)',
           explanation: 'Successfully constructed Optional NFA accepting L(A) ∪ {ε}.',
           detail: `Result has ${resultNFA.states.length} states.`,
         },
@@ -471,30 +653,48 @@ export const AnimatedNFAOperationModal: React.FC<AnimatedNFAOperationModalProps>
       },
       {
         stepIndex: 2,
-        phaseName: '2. Invert All Transition Edges',
+        phaseName: '2. Place Automaton State Nodes',
+        explanation: 'Placed state nodes for inverted automaton.',
+        detail: `State nodes placed.`,
+      },
+      {
+        stepIndex: 3,
+        phaseName: '3. Invert Symbol Transitions',
         explanation: 'Reversed direction of every transition arrow: u ➔ a ➔ v becomes v ➔ a ➔ u.',
         detail: 'Flipped transition mapping directions.',
       },
       {
-        stepIndex: 3,
-        phaseName: '3. Swap Start and Accept States',
-        explanation: 'Swapped start state and accept states.',
-        detail: `New start state '${resultNFA.startState}', new accept states {${resultNFA.acceptStates.join(', ')}}.`,
-      },
-      {
         stepIndex: 4,
-        phaseName: '4. Add ε-Branches for Multiple Accepts',
-        explanation: 'Attached spontaneous ε-branches if original NFA had multiple accept states.',
-        detail: 'Constructed single unified start state.',
+        phaseName: `4. Create Inverted Start State (${resultNFA.startState})`,
+        explanation: `Created start state '${resultNFA.startState}'.`,
+        detail: `Placed initial start state node '${resultNFA.startState}'.`,
       },
       {
         stepIndex: 5,
-        phaseName: '5. Reverse Finished (A^R)',
+        phaseName: '5. Connect Start ε-Branches to Original Accepts',
+        explanation: 'Attached spontaneous ε-branches from new start state to original accept states.',
+        detail: 'Constructed single unified start state branches.',
+      },
+      {
+        stepIndex: 6,
+        phaseName: '6. Set Original Start State as Accept',
+        explanation: 'Marked original start state as the single final accept state.',
+        detail: `Accept states: {${resultNFA.acceptStates.join(', ')}}.`,
+      },
+      {
+        stepIndex: 7,
+        phaseName: '7. Prune Unreachable Nodes',
+        explanation: 'Pruned any dead/unreachable inverted states.',
+        detail: 'Cleaned state space.',
+      },
+      {
+        stepIndex: 8,
+        phaseName: '8. Reverse Complete (A^R)',
         explanation: `Successfully constructed Reverse NFA accepting language reversal.`,
         detail: `Result NFA has ${resultNFA.states.length} states.`,
       },
     ];
-  }, [nfaA, nfaB, resultNFA, operation, operationTitle]);
+  }, [nfaA, nfaB, resultNFA, operation]);
 
   const activeStep = steps[currentStepIndex] || steps[0];
 
@@ -530,7 +730,7 @@ export const AnimatedNFAOperationModal: React.FC<AnimatedNFAOperationModalProps>
                 ⚡ Interactive NFA Operation Visualizer
               </h2>
               <p className="text-xs text-purple-300 font-mono font-bold">
-                {operationTitle} — Thompson Structural Construction
+                {operationTitle} — Thompson Structural Construction (8-Step Granular Pipeline)
               </p>
             </div>
           </div>
@@ -562,7 +762,7 @@ export const AnimatedNFAOperationModal: React.FC<AnimatedNFAOperationModalProps>
           </div>
         </div>
 
-        {/* ── STEPPER TIMELINE ── */}
+        {/* ── STEPPER TIMELINE (8-Step Granular Pipeline) ── */}
         <div className="bg-slate-950/60 border-b border-slate-800/80 p-3">
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
             {steps.map((st, idx) => {
@@ -606,7 +806,7 @@ export const AnimatedNFAOperationModal: React.FC<AnimatedNFAOperationModalProps>
             <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex flex-col min-h-[280px] shadow-xl relative">
               <MiniAutomataGraph
                 graph={stepResultGraph}
-                title={`Result NFA (${currentStepIndex === steps.length - 1 ? 'Final' : currentStepIndex === 0 ? 'Empty' : 'Constructing...'})`}
+                title={`Result NFA (${currentStepIndex === steps.length - 1 ? 'Final' : currentStepIndex === 0 ? 'Empty' : `Step ${currentStepIndex + 1}/8`})`}
                 accentColor="#10b981"
                 svgH={240}
               />
